@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"D:/Project/SteamDeckSoft\" log --oneline --all)",
+      "WebSearch",
+      "Bash(python:*)",
+      "Bash(pip install:*)"
+    ]
+  }
+}
