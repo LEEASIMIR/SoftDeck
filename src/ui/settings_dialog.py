@@ -7,7 +7,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout,
     QSpinBox, QCheckBox, QComboBox,
-    QDialogButtonBox, QGroupBox,
+    QDialogButtonBox, QGroupBox, QSlider,
+    QHBoxLayout, QLabel,
 )
 
 if TYPE_CHECKING:
@@ -59,7 +60,7 @@ class SettingsDialog(QDialog):
         behavior_group = QGroupBox("Behavior")
         behavior_form = QFormLayout(behavior_group)
 
-        self._auto_switch_check = QCheckBox("Auto-switch pages based on active app")
+        self._auto_switch_check = QCheckBox("Auto-switch folders based on active app")
         behavior_form.addRow(self._auto_switch_check)
 
         self._always_on_top_check = QCheckBox("Always on top")
@@ -74,6 +75,18 @@ class SettingsDialog(QDialog):
         self._theme_combo = QComboBox()
         self._theme_combo.addItem("Dark", "dark")
         appearance_form.addRow("Theme:", self._theme_combo)
+
+        opacity_row = QHBoxLayout()
+        self._opacity_slider = QSlider(Qt.Orientation.Horizontal)
+        self._opacity_slider.setRange(20, 100)
+        self._opacity_slider.setTickInterval(10)
+        self._opacity_label = QLabel("90%")
+        self._opacity_slider.valueChanged.connect(
+            lambda v: self._opacity_label.setText(f"{v}%")
+        )
+        opacity_row.addWidget(self._opacity_slider)
+        opacity_row.addWidget(self._opacity_label)
+        appearance_form.addRow("Opacity:", opacity_row)
 
         layout.addWidget(appearance_group)
 
@@ -99,6 +112,10 @@ class SettingsDialog(QDialog):
                 self._theme_combo.setCurrentIndex(i)
                 break
 
+        opacity_pct = int(s.window_opacity * 100)
+        self._opacity_slider.setValue(opacity_pct)
+        self._opacity_label.setText(f"{opacity_pct}%")
+
     def _apply_and_accept(self) -> None:
         s = self._config_manager.settings
         s.grid_rows = self._rows_spin.value()
@@ -108,6 +125,7 @@ class SettingsDialog(QDialog):
         s.auto_switch_enabled = self._auto_switch_check.isChecked()
         s.always_on_top = self._always_on_top_check.isChecked()
         s.theme = self._theme_combo.currentData()
+        s.window_opacity = self._opacity_slider.value() / 100.0
 
         self._config_manager.save()
         self.accept()

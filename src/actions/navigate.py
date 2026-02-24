@@ -8,18 +8,18 @@ from .base import ActionBase
 logger = logging.getLogger(__name__)
 
 
-class NavigatePageAction(ActionBase):
+class NavigateFolderAction(ActionBase):
     def __init__(self, registry) -> None:
         self._registry = registry
 
     def execute(self, params: dict[str, Any]) -> None:
-        page_id = params.get("page_id", "")
-        if not page_id:
-            logger.warning("navigate_page: no page_id specified")
+        folder_id = params.get("folder_id", "") or params.get("page_id", "")
+        if not folder_id:
+            logger.warning("navigate_folder: no folder_id specified")
             return
         window = self._registry.main_window
         if window is not None:
-            window.switch_to_page_id(page_id)
+            window.switch_to_folder_id(folder_id)
 
     def get_display_text(self, params: dict[str, Any]) -> str | None:
         return None

@@ -9,17 +9,17 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox, QGroupBox, QInputDialog,
 )
 
-from ..config.models import PageConfig
+from ..config.models import FolderConfig
 
 logger = logging.getLogger(__name__)
 
 
-class PageEditorDialog(QDialog):
-    def __init__(self, page: PageConfig, parent=None) -> None:
+class FolderEditorDialog(QDialog):
+    def __init__(self, folder: FolderConfig, parent=None) -> None:
         super().__init__(parent)
-        self._page = page
+        self._folder = folder
 
-        self.setWindowTitle(f"Edit Page: {page.name}")
+        self.setWindowTitle(f"Edit Folder: {folder.name}")
         self.setMinimumWidth(400)
         self.setMinimumHeight(350)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
@@ -31,7 +31,7 @@ class PageEditorDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # Basic info
-        basic_group = QGroupBox("Page Info")
+        basic_group = QGroupBox("Folder Info")
         basic_form = QFormLayout(basic_group)
 
         self._name_edit = QLineEdit()
@@ -48,7 +48,7 @@ class PageEditorDialog(QDialog):
         mapping_layout = QVBoxLayout(mapping_group)
 
         mapping_layout.addWidget(QLabel(
-            "Add exe names that will auto-switch to this page.\n"
+            "Add exe names that will auto-switch to this folder.\n"
             "e.g. Code.exe, chrome.exe"
         ))
 
@@ -76,9 +76,9 @@ class PageEditorDialog(QDialog):
         layout.addWidget(buttons)
 
     def _load_config(self) -> None:
-        self._name_edit.setText(self._page.name)
-        self._id_label.setText(self._page.id)
-        for app in self._page.mapped_apps:
+        self._name_edit.setText(self._folder.name)
+        self._id_label.setText(self._folder.id)
+        for app in self._folder.mapped_apps:
             self._app_list.addItem(app)
 
     def _add_app(self) -> None:
@@ -93,14 +93,16 @@ class PageEditorDialog(QDialog):
         if current >= 0:
             self._app_list.takeItem(current)
 
-    def get_config(self) -> PageConfig:
+    def get_config(self) -> FolderConfig:
         apps = []
         for i in range(self._app_list.count()):
             apps.append(self._app_list.item(i).text())
 
-        return PageConfig(
-            id=self._page.id,
+        return FolderConfig(
+            id=self._folder.id,
             name=self._name_edit.text() or "Unnamed",
             mapped_apps=apps,
-            buttons=list(self._page.buttons),
+            buttons=list(self._folder.buttons),
+            children=list(self._folder.children),
+            expanded=self._folder.expanded,
         )

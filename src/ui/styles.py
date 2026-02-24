@@ -168,6 +168,38 @@ QDialogButtonBox QPushButton {
     min-width: 80px;
     padding: 6px 16px;
 }
+
+QSlider::groove:horizontal {
+    height: 4px;
+    background: #0f3460;
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+    background: #e94560;
+    width: 12px;
+    height: 12px;
+    margin: -4px 0;
+    border-radius: 6px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: #ff6b81;
+}
+
+QSlider::sub-page:horizontal {
+    background: #533483;
+    border-radius: 2px;
+}
+
+QSplitter::handle {
+    background-color: #0f3460;
+    width: 2px;
+}
+
+QSplitter::handle:hover {
+    background-color: #533483;
+}
 """
 
 DECK_BUTTON_STYLE = """
@@ -222,10 +254,54 @@ QPushButton#deckButton {
 }
 """
 
-PAGE_BAR_STYLE = """
-QWidget#pageBar {
+FOLDER_TREE_STYLE = """
+QTreeWidget#folderTree {
     background-color: #111122;
-    border-top: 1px solid #0f3460;
+    color: #e0e0e0;
+    border: none;
+    border-right: 1px solid #0f3460;
+    outline: none;
+    font-size: 12px;
+}
+
+QTreeWidget#folderTree::item {
+    padding: 4px 8px;
+    border-radius: 0px;
+}
+
+QTreeWidget#folderTree::item:selected {
+    background-color: #0f3460;
+    color: #e94560;
+}
+
+QTreeWidget#folderTree::item:hover:!selected {
+    background-color: #16213e;
+}
+
+QTreeWidget#folderTree::branch {
+    background-color: #111122;
+}
+
+QTreeWidget#folderTree::branch:has-children:!has-siblings:closed,
+QTreeWidget#folderTree::branch:closed:has-children:has-siblings {
+    image: none;
+    border-image: none;
+}
+
+QTreeWidget#folderTree::branch:open:has-children:!has-siblings,
+QTreeWidget#folderTree::branch:open:has-children:has-siblings {
+    image: none;
+    border-image: none;
+}
+
+QHeaderView::section {
+    background-color: #111122;
+    color: #e94560;
+    border: none;
+    border-bottom: 1px solid #0f3460;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: bold;
 }
 """
 

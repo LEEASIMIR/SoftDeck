@@ -27,6 +27,8 @@ _BUTTON_COLORS = [
 
 
 class DeckButton(QPushButton):
+    _clipboard: dict | None = None  # class-level copied button data
+
     def __init__(
         self,
         row: int,
@@ -109,6 +111,11 @@ class DeckButton(QPushButton):
 
         edit_action = menu.addAction("Edit Button")
         clear_action = menu.addAction("Clear Button")
+        menu.addSeparator()
+        copy_action = menu.addAction("Copy Button")
+        copy_action.setEnabled(self._config is not None and bool(self._config.action.type))
+        paste_action = menu.addAction("Paste Button")
+        paste_action.setEnabled(DeckButton._clipboard is not None)
 
         action = menu.exec(self.mapToGlobal(pos))
 
@@ -116,6 +123,10 @@ class DeckButton(QPushButton):
             self._edit_button()
         elif action == clear_action:
             self._clear_button()
+        elif action == copy_action:
+            self._copy_button()
+        elif action == paste_action:
+            self._paste_button()
 
     def _edit_button(self) -> None:
         from .button_editor_dialog import ButtonEditorDialog
@@ -125,19 +136,50 @@ class DeckButton(QPushButton):
         )
         if dialog.exec():
             new_config = dialog.get_config()
-            page = self._main_window._config_manager.pages[self._main_window.get_current_page_index()]
-            # Remove old config at this position
-            page.buttons = [b for b in page.buttons if b.position != (self._row, self._col)]
-            if new_config.action.type:
-                page.buttons.append(new_config)
-            self._main_window._config_manager.save()
-            self._main_window._load_current_page()
+            folder = self._main_window._config_manager.get_folder_by_id(
+                self._main_window.get_current_folder_id()
+            )
+            if folder is not None:
+                # Remove old config at this position
+                folder.buttons = [b for b in folder.buttons if b.position != (self._row, self._col)]
+                if new_config.action.type:
+                    folder.buttons.append(new_config)
+                self._main_window._config_manager.save()
+                self._main_window._load_current_folder()
+                # Update tree to reflect button count change
+                if self._main_window._folder_tree is not None:
+                    self._main_window._folder_tree.rebuild()
 
     def _clear_button(self) -> None:
-        page = self._main_window._config_manager.pages[self._main_window.get_current_page_index()]
-        page.buttons = [b for b in page.buttons if b.position != (self._row, self._col)]
-        self._main_window._config_manager.save()
-        self._main_window._load_current_page()
+        folder = self._main_window._config_manager.get_folder_by_id(
+            self._main_window.get_current_folder_id()
+        )
+        if folder is not None:
+            folder.buttons = [b for b in folder.buttons if b.position != (self._row, self._col)]
+            self._main_window._config_manager.save()
+            self._main_window._load_current_folder()
+            if self._main_window._folder_tree is not None:
+                self._main_window._folder_tree.rebuild()
+
+    def _copy_button(self) -> None:
+        if self._config is not None:
+            DeckButton._clipboard = self._config.to_dict()
+
+    def _paste_button(self) -> None:
+        if DeckButton._clipboard is None:
+            return
+        new_config = ButtonConfig.from_dict(DeckButton._clipboard)
+        new_config.position = (self._row, self._col)
+        folder = self._main_window._config_manager.get_folder_by_id(
+            self._main_window.get_current_folder_id()
+        )
+        if folder is not None:
+            folder.buttons = [b for b in folder.buttons if b.position != (self._row, self._col)]
+            folder.buttons.append(new_config)
+            self._main_window._config_manager.save()
+            self._main_window._load_current_folder()
+            if self._main_window._folder_tree is not None:
+                self._main_window._folder_tree.rebuild()
 
     def get_config(self) -> ButtonConfig | None:
         return self._config

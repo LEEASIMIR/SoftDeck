@@ -12,7 +12,9 @@ from .actions.launch_app import LaunchAppAction
 from .actions.hotkey import HotkeyAction
 from .actions.media import MediaControlAction
 from .actions.system_monitor import SystemMonitorAction
-from .actions.navigate import NavigatePageAction
+from .actions.navigate import NavigateFolderAction
+from .actions.text_input import TextInputAction
+from .actions.macro import MacroAction
 from .services.media_control import MediaControlService
 from .services.system_stats import SystemStatsService
 from .services.window_monitor import ActiveWindowMonitor
@@ -50,13 +52,15 @@ class SteamDeckSoftApp(QApplication):
         self._action_registry = ActionRegistry()
         self._register_actions()
 
-        # Input detector (injected key filter)
+        # Input detector (injected key filter + global numpad shortcuts)
         self._input_detector = InputDetector()
         self._input_detector.start()
 
         # Main window
         self._main_window = MainWindow(self._config_manager, self._action_registry)
         self._main_window.set_input_detector(self._input_detector)
+        self._input_detector.numpad_signal.pressed.connect(self._main_window.on_global_numpad)
+        self._input_detector.numpad_signal.numlock_changed.connect(self._on_numlock_changed)
         self._action_registry.set_main_window(self._main_window)
 
         # Tray
@@ -76,7 +80,11 @@ class SteamDeckSoftApp(QApplication):
         # Apply theme
         self.setStyleSheet(DARK_THEME)
 
-        self._main_window.show()
+        # Show window only if Num Lock is OFF
+        if self._input_detector.is_numlock_on():
+            logger.info("Num Lock is ON at startup — window hidden")
+        else:
+            self._main_window.show()
 
     @property
     def already_running(self) -> bool:
@@ -97,15 +105,19 @@ class SteamDeckSoftApp(QApplication):
         # Register actions
         self._action_registry.register("launch_app", LaunchAppAction())
         self._action_registry.register("hotkey", HotkeyAction())
+        self._action_registry.register("text_input", TextInputAction())
+        self._action_registry.register("macro", MacroAction())
 
         media_action = MediaControlAction()
         media_action.set_media_service(self._media_service)
         self._action_registry.register("media_control", media_action)
 
         self._action_registry.register("system_monitor", SystemMonitorAction())
-        self._action_registry.register(
-            "navigate_page", NavigatePageAction(self._action_registry)
-        )
+
+        nav_action = NavigateFolderAction(self._action_registry)
+        self._action_registry.register("navigate_folder", nav_action)
+        # Backward compat: old configs with navigate_page type
+        self._action_registry.register("navigate_page", nav_action)
 
     def _start_services(self) -> None:
         # System stats
@@ -123,12 +135,19 @@ class SteamDeckSoftApp(QApplication):
         else:
             self._window_monitor = None
 
+    def _on_numlock_changed(self, is_on: bool) -> None:
+        """Hide window when Num Lock is ON, show when OFF."""
+        if is_on:
+            self._main_window.hide()
+        else:
+            self._main_window.show_on_primary()
+
     def _on_active_app_changed(self, exe_name: str) -> None:
         if not self._config_manager.settings.auto_switch_enabled:
             return
-        page = self._config_manager.find_page_for_app(exe_name)
-        if page is not None:
-            self._main_window.switch_to_page_id(page.id)
+        folder = self._config_manager.find_folder_for_app(exe_name)
+        if folder is not None:
+            self._main_window.switch_to_folder_id(folder.id)
 
     def cleanup(self) -> None:
         logger.info("Shutting down...")

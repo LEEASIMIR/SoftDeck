@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "settings": {
     "grid_rows": 3,
     "grid_cols": 3,
@@ -8,114 +8,116 @@
     "auto_switch_enabled": true,
     "always_on_top": true,
     "theme": "dark",
-    "global_hotkey": "ctrl+`"
+    "global_hotkey": "ctrl+`",
+    "window_opacity": 0.9,
+    "folder_tree_visible": true
   },
-  "pages": [
-    {
-      "id": "page_main",
-      "name": "Main",
-      "mapped_apps": [],
-      "buttons": [
-        {
-          "position": [0, 0],
-          "label": "7",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "7"
-            }
-          }
-        },
-        {
-          "position": [0, 1],
-          "label": "8",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "8"
-            }
-          }
-        },
-        {
-          "position": [0, 2],
-          "label": "9",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "9"
-            }
-          }
-        },
-        {
-          "position": [1, 0],
-          "label": "4",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "4"
-            }
-          }
-        },
-        {
-          "position": [1, 1],
-          "label": "5",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "5"
-            }
-          }
-        },
-        {
-          "position": [1, 2],
-          "label": "6",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "6"
-            }
-          }
-        },
-        {
-          "position": [2, 0],
-          "label": "1",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "1"
-            }
-          }
-        },
-        {
-          "position": [2, 1],
-          "label": "2",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "2"
-            }
-          }
-        },
-        {
-          "position": [2, 2],
-          "label": "3",
-          "icon": "",
-          "action": {
-            "type": "hotkey",
-            "params": {
-              "keys": "3"
-            }
+  "root_folder": {
+    "id": "root",
+    "name": "Root",
+    "mapped_apps": [],
+    "buttons": [
+      {
+        "position": [0, 0],
+        "label": "7",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "7"
           }
         }
-      ]
-    }
-  ]
+      },
+      {
+        "position": [0, 1],
+        "label": "8",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "8"
+          }
+        }
+      },
+      {
+        "position": [0, 2],
+        "label": "9",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "9"
+          }
+        }
+      },
+      {
+        "position": [1, 0],
+        "label": "4",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "4"
+          }
+        }
+      },
+      {
+        "position": [1, 1],
+        "label": "5",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "5"
+          }
+        }
+      },
+      {
+        "position": [1, 2],
+        "label": "6",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "6"
+          }
+        }
+      },
+      {
+        "position": [2, 0],
+        "label": "1",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "1"
+          }
+        }
+      },
+      {
+        "position": [2, 1],
+        "label": "2",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "2"
+          }
+        }
+      },
+      {
+        "position": [2, 2],
+        "label": "3",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "3"
+          }
+        }
+      }
+    ],
+    "children": [],
+    "expanded": true
+  }
 }

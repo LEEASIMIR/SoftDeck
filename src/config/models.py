@@ -47,11 +47,13 @@ class ButtonConfig:
 
 
 @dataclass
-class PageConfig:
+class FolderConfig:
     id: str = ""
-    name: str = "New Page"
+    name: str = "New Folder"
     mapped_apps: list[str] = field(default_factory=list)
     buttons: list[ButtonConfig] = field(default_factory=list)
+    children: list[FolderConfig] = field(default_factory=list)
+    expanded: bool = True
 
     def to_dict(self) -> dict:
         return {
@@ -59,7 +61,29 @@ class PageConfig:
             "name": self.name,
             "mapped_apps": list(self.mapped_apps),
             "buttons": [b.to_dict() for b in self.buttons],
+            "children": [c.to_dict() for c in self.children],
+            "expanded": self.expanded,
         }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> FolderConfig:
+        return cls(
+            id=data.get("id", ""),
+            name=data.get("name", "New Folder"),
+            mapped_apps=list(data.get("mapped_apps", [])),
+            buttons=[ButtonConfig.from_dict(b) for b in data.get("buttons", [])],
+            children=[FolderConfig.from_dict(c) for c in data.get("children", [])],
+            expanded=data.get("expanded", True),
+        )
+
+
+# Kept for v1 migration only (deprecated)
+@dataclass
+class PageConfig:
+    id: str = ""
+    name: str = "New Page"
+    mapped_apps: list[str] = field(default_factory=list)
+    buttons: list[ButtonConfig] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict) -> PageConfig:
@@ -81,6 +105,8 @@ class AppSettings:
     always_on_top: bool = True
     theme: str = "dark"
     global_hotkey: str = "ctrl+`"
+    window_opacity: float = 0.9
+    folder_tree_visible: bool = True
 
     def to_dict(self) -> dict:
         return {
@@ -92,6 +118,8 @@ class AppSettings:
             "always_on_top": self.always_on_top,
             "theme": self.theme,
             "global_hotkey": self.global_hotkey,
+            "window_opacity": self.window_opacity,
+            "folder_tree_visible": self.folder_tree_visible,
         }
 
     @classmethod
@@ -105,26 +133,70 @@ class AppSettings:
             always_on_top=data.get("always_on_top", True),
             theme=data.get("theme", "dark"),
             global_hotkey=data.get("global_hotkey", "ctrl+`"),
+            window_opacity=max(0.2, min(1.0, data.get("window_opacity", 0.9))),
+            folder_tree_visible=data.get("folder_tree_visible", True),
         )
 
 
 @dataclass
 class AppConfig:
-    version: int = 1
+    version: int = 2
     settings: AppSettings = field(default_factory=AppSettings)
-    pages: list[PageConfig] = field(default_factory=list)
+    root_folder: FolderConfig = field(default_factory=lambda: FolderConfig(id="root", name="Root"))
 
     def to_dict(self) -> dict:
         return {
             "version": self.version,
             "settings": self.settings.to_dict(),
-            "pages": [p.to_dict() for p in self.pages],
+            "root_folder": self.root_folder.to_dict(),
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> AppConfig:
+        version = data.get("version", 1)
+        settings = AppSettings.from_dict(data.get("settings", {}))
+
+        if version < 2:
+            root_folder = _migrate_v1(data)
+        else:
+            root_folder = FolderConfig.from_dict(data.get("root_folder", {"id": "root", "name": "Root"}))
+
         return cls(
-            version=data.get("version", 1),
-            settings=AppSettings.from_dict(data.get("settings", {})),
-            pages=[PageConfig.from_dict(p) for p in data.get("pages", [])],
+            version=2,
+            settings=settings,
+            root_folder=root_folder,
         )
+
+
+def _migrate_v1(data: dict) -> FolderConfig:
+    """Convert v1 pages list into v2 root_folder tree."""
+    pages_data = data.get("pages", [])
+    children: list[FolderConfig] = []
+    for p_data in pages_data:
+        page = PageConfig.from_dict(p_data)
+        children.append(FolderConfig(
+            id=page.id,
+            name=page.name,
+            mapped_apps=page.mapped_apps,
+            buttons=page.buttons,
+            children=[],
+            expanded=True,
+        ))
+
+    root = FolderConfig(
+        id="root",
+        name="Root",
+        mapped_apps=[],
+        buttons=[],
+        children=children,
+        expanded=True,
+    )
+
+    # If there's only one child, hoist its buttons to root for cleaner UX
+    if len(children) == 1:
+        only = children[0]
+        root.buttons = only.buttons
+        root.mapped_apps = only.mapped_apps
+        root.children = []
+
+    return root
