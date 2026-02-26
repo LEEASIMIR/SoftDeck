@@ -5,11 +5,10 @@ import os
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt, QSize, QRect
-from PyQt6.QtGui import QIcon, QMouseEvent, QPainter, QPixmap, QColor
+from PyQt6.QtGui import QFont, QIcon, QMouseEvent, QPainter, QPixmap, QColor
 from PyQt6.QtWidgets import QPushButton, QMenu, QStyleOptionButton, QStyle
 
 from ..config.models import ButtonConfig
-from .styles import DECK_BUTTON_STYLE, DECK_BUTTON_EMPTY_STYLE, MONITOR_BUTTON_STYLE
 
 if TYPE_CHECKING:
     from ..actions.registry import ActionRegistry
@@ -53,14 +52,15 @@ class DeckButton(QPushButton):
             self.clicked.connect(self._on_clicked)
 
     def _apply_style(self) -> None:
+        theme = self._main_window._theme
         if self._config is None or not self._config.action.type:
-            self.setStyleSheet(DECK_BUTTON_EMPTY_STYLE)
+            self.setStyleSheet(theme.deck_button_empty_style)
             return
 
         if self._config.action.type == "system_monitor":
-            style = MONITOR_BUTTON_STYLE
+            style = theme.monitor_button_style
         else:
-            style = DECK_BUTTON_STYLE
+            style = theme.deck_button_style
 
         overrides: list[str] = []
         if self._config.label_color:
@@ -69,8 +69,11 @@ class DeckButton(QPushButton):
             overrides.append(f"font-size: {self._config.label_size}px;")
         else:
             default_size = self._main_window._config_manager.settings.default_label_size
-            if default_size != 15:
+            if default_size != 10:
                 overrides.append(f"font-size: {default_size}px;")
+        default_family = self._main_window._config_manager.settings.default_label_family
+        if default_family:
+            overrides.append(f"font-family: '{default_family}';")
         if overrides:
             style += "\nQPushButton#deckButton { " + " ".join(overrides) + " }"
         self.setStyleSheet(style)
@@ -132,10 +135,13 @@ class DeckButton(QPushButton):
             label_color = (
                 self._config.label_color
                 if self._config and self._config.label_color
-                else "#ffffff"
+                else self._main_window._theme.palette.text_bright
             )
             painter.setPen(QColor(label_color))
             font = self.font()
+            default_family = self._main_window._config_manager.settings.default_label_family
+            if default_family:
+                font.setFamily(default_family)
             if self._config and self._config.label_size:
                 font_size = self._config.label_size
             else:
@@ -146,12 +152,21 @@ class DeckButton(QPushButton):
 
         painter.end()
 
+    _FOREGROUND_ACTIONS = frozenset({"launch_app", "open_url", "run_command"})
+
     def _on_clicked(self) -> None:
-        if self._config and self._config.action.type:
-            self._action_registry.execute(
-                self._config.action.type,
-                self._config.action.params,
+        if not (self._config and self._config.action.type):
+            return
+
+        action_type = self._config.action.type
+        params = self._config.action.params
+
+        if action_type in self._FOREGROUND_ACTIONS:
+            self._main_window.launch_with_foreground(
+                lambda: self._action_registry.execute(action_type, params),
             )
+        else:
+            self._action_registry.execute(action_type, params)
 
     def update_monitor_data(self, cpu: float, ram: float) -> None:
         if self._config and self._config.action.type == "system_monitor":

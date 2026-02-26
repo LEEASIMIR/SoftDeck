@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import ctypes
 import logging
 import os
 import sys
+import time
+
+import psutil
 
 # Prevent the keyboard library from ever installing a WH_KEYBOARD_LL hook.
 # Its hook interferes with our numpad_hook.exe even in a separate process.
 import keyboard as _kb
 _kb._listener.start_if_necessary = lambda: None
 
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon
 
 from .config.manager import ConfigManager
 from .actions.registry import ActionRegistry
@@ -29,10 +33,12 @@ from .services.global_hotkey import GlobalHotkeyService
 from .services.input_detector import InputDetector
 from .ui.main_window import MainWindow
 from .ui.tray_icon import TrayIcon
-from .ui.styles import DARK_THEME
+from .ui.styles import get_theme
 from .ui.splash import Splash
 
 logger = logging.getLogger(__name__)
+
+_MUTEX_NAME = "SteamDeckSoft_SingleInstance"
 
 
 class SteamDeckSoftApp(QApplication):
@@ -41,16 +47,23 @@ class SteamDeckSoftApp(QApplication):
         self.setApplicationName("SteamDeckSoft")
         self.setQuitOnLastWindowClosed(False)
 
+        self._instance_mutex = None
         self._setup_logging()
 
-        # Splash screen
+        # Splash screen first (no theme yet — uses fallback colors)
         self._splash = Splash()
         self._splash.show_and_close()
         self.processEvents()
 
+        # Single instance: kill existing process if running
+        self._ensure_single_instance()
+
         # Config
         self._config_manager = ConfigManager()
         self._config_manager.load()
+
+        # Resolve theme
+        self._theme = get_theme(self._config_manager.settings.theme)
 
         # Actions
         self._action_registry = ActionRegistry()
@@ -83,13 +96,16 @@ class SteamDeckSoftApp(QApplication):
         self._global_hotkey.start()
 
         # Apply theme
-        self.setStyleSheet(DARK_THEME)
+        self.setStyleSheet(self._theme.dark_theme)
 
         # Show window only if Num Lock is OFF
         if self._input_detector.is_numlock_on():
             logger.info("Num Lock is ON at startup — window hidden")
         else:
             self._main_window.show()
+
+        # Ready feedback
+        self._notify_ready()
 
     def _setup_logging(self) -> None:
         log_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -169,6 +185,69 @@ class SteamDeckSoftApp(QApplication):
         if folder is not None:
             self._main_window.switch_to_folder_id(folder.id)
 
+    def _notify_ready(self) -> None:
+        """Tray notification + system sound to signal app is ready."""
+        import winsound
+        self._tray_icon.showMessage(
+            "SteamDeckSoft",
+            "Ready",
+            QSystemTrayIcon.MessageIcon.Information,
+            2000,
+        )
+        winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
+
+    # ------------------------------------------------------------------
+    # Single-instance helpers
+    # ------------------------------------------------------------------
+
+    def _acquire_mutex(self) -> bool:
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.CreateMutexW(None, False, _MUTEX_NAME)
+        if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+            kernel32.CloseHandle(handle)
+            return False
+        self._instance_mutex = handle
+        return True
+
+    def _kill_existing(self) -> None:
+        my_pid = os.getpid()
+        for proc in psutil.process_iter(["pid", "name"]):
+            try:
+                if proc.pid == my_pid:
+                    continue
+                name = proc.info["name"] or ""
+                if name.lower() == "steamdecksoft.exe":
+                    proc.terminate()
+                    proc.wait(timeout=3)
+                    logger.info("Terminated existing PID %d", proc.pid)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+            except psutil.TimeoutExpired:
+                try:
+                    proc.kill()
+                    logger.info("Force-killed existing PID %d", proc.pid)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+
+    def _ensure_single_instance(self) -> None:
+        if self._acquire_mutex():
+            return
+
+        logger.info("Another instance detected — terminating it")
+        self._kill_existing()
+
+        for _ in range(20):
+            time.sleep(0.25)
+            self.processEvents()
+            if self._acquire_mutex():
+                logger.info("Mutex acquired after killing existing process")
+                return
+
+        logger.error("Failed to acquire mutex after killing existing process")
+        sys.exit(1)
+
+    # ------------------------------------------------------------------
+
     def cleanup(self) -> None:
         logger.info("Shutting down...")
         if hasattr(self, "_tray_icon"):
@@ -181,3 +260,6 @@ class SteamDeckSoftApp(QApplication):
             self._stats_service.stop()
         if hasattr(self, "_window_monitor") and self._window_monitor is not None:
             self._window_monitor.stop()
+        if self._instance_mutex:
+            ctypes.windll.kernel32.CloseHandle(self._instance_mutex)
+            self._instance_mutex = None

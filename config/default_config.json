@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "app_version": "0.1.0-beta",
   "settings": {
     "grid_rows": 3,
     "grid_cols": 3,

@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.version import APP_VERSION
+
 
 @dataclass
 class ActionConfig:
@@ -108,9 +110,9 @@ class PageConfig:
 class AppSettings:
     grid_rows: int = 3
     grid_cols: int = 5
-    button_size: int = 100
+    button_size: int = 60
     button_spacing: int = 8
-    default_label_size: int = 15
+    default_label_size: int = 10
     auto_switch_enabled: bool = True
     always_on_top: bool = True
     theme: str = "dark"
@@ -119,6 +121,7 @@ class AppSettings:
     folder_tree_visible: bool = True
     window_x: int | None = None
     window_y: int | None = None
+    default_label_family: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -127,6 +130,7 @@ class AppSettings:
             "button_size": self.button_size,
             "button_spacing": self.button_spacing,
             "default_label_size": self.default_label_size,
+            "default_label_family": self.default_label_family,
             "auto_switch_enabled": self.auto_switch_enabled,
             "always_on_top": self.always_on_top,
             "theme": self.theme,
@@ -142,9 +146,10 @@ class AppSettings:
         return cls(
             grid_rows=data.get("grid_rows", 3),
             grid_cols=data.get("grid_cols", 5),
-            button_size=data.get("button_size", 100),
+            button_size=data.get("button_size", 60),
             button_spacing=data.get("button_spacing", 8),
-            default_label_size=data.get("default_label_size", 15),
+            default_label_size=data.get("default_label_size", 10),
+            default_label_family=data.get("default_label_family", ""),
             auto_switch_enabled=data.get("auto_switch_enabled", True),
             always_on_top=data.get("always_on_top", True),
             theme=data.get("theme", "dark"),
@@ -159,12 +164,14 @@ class AppSettings:
 @dataclass
 class AppConfig:
     version: int = 2
+    app_version: str = APP_VERSION
     settings: AppSettings = field(default_factory=AppSettings)
     root_folder: FolderConfig = field(default_factory=lambda: FolderConfig(id="root", name="Root"))
 
     def to_dict(self) -> dict:
         return {
             "version": self.version,
+            "app_version": APP_VERSION,
             "settings": self.settings.to_dict(),
             "root_folder": self.root_folder.to_dict(),
         }
@@ -181,6 +188,7 @@ class AppConfig:
 
         return cls(
             version=2,
+            app_version=APP_VERSION,
             settings=settings,
             root_folder=root_folder,
         )

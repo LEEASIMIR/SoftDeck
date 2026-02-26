@@ -18,7 +18,9 @@
       "Bash(echo EXIT=$?:*)",
       "Bash(echo EXIT_CODE=$?:*)",
       "Bash(taskkill:*)",
-      "Bash(echo EXE OK:*)"
+      "Bash(echo EXE OK:*)",
+      "Bash(cd:*)",
+      "Bash(cmd.exe:*)"
     ]
   }
 }

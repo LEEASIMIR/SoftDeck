@@ -109,9 +109,17 @@ class HotkeyRecorderWidget(QWidget):
     def _start_recording(self) -> None:
         self._recording = True
         self._record_btn.setText("Stop")
+        # Try to get accent from theme via parent chain
+        accent = "#e94560"
+        widget = self.parent()
+        while widget is not None:
+            if hasattr(widget, '_theme'):
+                accent = widget._theme.palette.accent
+                break
+            widget = getattr(widget, 'parent', lambda: None)()
         self._record_btn.setStyleSheet(
-            "QPushButton { background-color: #e94560; color: #ffffff; border: 1px solid #e94560; "
-            "border-radius: 4px; font-weight: bold; }"
+            f"QPushButton {{ background-color: {accent}; color: #ffffff; border: 1px solid {accent}; "
+            f"border-radius: 4px; font-weight: bold; }}"
         )
         self._display.setText("")
         self._display.setPlaceholderText("Press keys...")
@@ -241,7 +249,10 @@ class ButtonEditorDialog(QDialog):
         basic_group = QGroupBox("Button")
         basic_form = QFormLayout(basic_group)
 
-        self._label_edit = QLineEdit()
+        self._label_edit = QTextEdit()
+        self._label_edit.setPlaceholderText("Enter label (supports line breaks)")
+        self._label_edit.setMaximumHeight(60)
+        self._label_edit.setTabChangesFocus(True)
         basic_form.addRow("Label:", self._label_edit)
 
         icon_row = QHBoxLayout()
@@ -474,7 +485,7 @@ class ButtonEditorDialog(QDialog):
             self._folder_combo.addItem(f"{indent}{prefix}{folder.name}", folder.id)
 
     def _load_config(self) -> None:
-        self._label_edit.setText(self._config.label)
+        self._label_edit.setPlainText(self._config.label)
         self._icon_edit.setText(self._config.icon)
         self._label_color_edit.setText(self._config.label_color)
         self._update_color_preview(self._config.label_color)
@@ -603,7 +614,7 @@ class ButtonEditorDialog(QDialog):
 
         return ButtonConfig(
             position=(self._row, self._col),
-            label=self._label_edit.text(),
+            label=self._label_edit.toPlainText(),
             icon=self._icon_edit.text(),
             label_color=self._label_color_edit.text().strip(),
             label_size=self._label_size_spin.value(),

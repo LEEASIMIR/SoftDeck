@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import pyqtSignal, Qt, QPoint
 from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QAbstractItemView
 
-from .styles import FOLDER_TREE_STYLE
-
 if TYPE_CHECKING:
     from ..config.manager import ConfigManager
     from ..config.models import FolderConfig
@@ -24,7 +22,7 @@ class FolderTreeWidget(QTreeWidget):
         self._main_window = parent
 
         self.setObjectName("folderTree")
-        self.setStyleSheet(FOLDER_TREE_STYLE)
+        self.setStyleSheet(self._main_window._theme.folder_tree_style)
         self.setHeaderLabel("Folders")
         self.setMinimumWidth(160)
         self.setMaximumWidth(300)

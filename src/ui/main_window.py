@@ -13,7 +13,8 @@ from PyQt6.QtWidgets import (
 )
 
 from ..config.models import ActionConfig, AppConfig, ButtonConfig, FolderConfig
-from .styles import DARK_THEME, TITLE_BAR_STYLE
+from ..version import APP_VERSION
+from .styles import get_theme
 
 if TYPE_CHECKING:
     from ..config.manager import ConfigManager
@@ -30,26 +31,25 @@ class TitleBar(QWidget):
         self._main_window = parent
         self._drag_pos: QPoint | None = None
         self.setObjectName("titleBar")
-        self.setStyleSheet(TITLE_BAR_STYLE)
-        self.setFixedHeight(50)
+        self._theme = self._main_window._theme
+        self.setStyleSheet(self._theme.title_bar_style)
+        self.setFixedHeight(25)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 4, 0)
-        layout.setSpacing(4)
+        layout.setContentsMargins(4, 2, 4, 0)
+        layout.setSpacing(2)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self._title_label = QLabel("SteamDeckSoft")
-        self._title_label.setStyleSheet("color: #e94560; font-size: 13px; font-weight: bold;")
-        layout.addWidget(self._title_label)
-
         # Folder tree toggle button
+        p = self._theme.palette
         btn_style = (
-            "QPushButton { background: transparent; color: #a0a0a0; border: none; font-size: 8px; }"
-            "QPushButton:hover { background-color: #2a2a4a; color: #ffffff; border-radius: 4px; }"
+            f"QPushButton {{ background: transparent; color: {p.text_dim}; border: none; "
+            f"font-size: 8px; padding: 0px; margin: 0px; }}"
+            f"QPushButton:hover {{ background-color: {p.titlebar_btn_hover_bg}; color: {p.text_bright}; border-radius: 2px; }}"
         )
 
         self._tree_toggle_btn = QPushButton("\u2630")  # ☰
-        self._tree_toggle_btn.setFixedSize(32, 30)
+        self._tree_toggle_btn.setFixedSize(18, 18)
         self._tree_toggle_btn.setStyleSheet(btn_style)
         self._tree_toggle_btn.setToolTip("Toggle folder tree")
         self._tree_toggle_btn.clicked.connect(self._main_window.toggle_folder_tree)
@@ -59,7 +59,7 @@ class TitleBar(QWidget):
 
         # Opacity slider
         opacity_label = QLabel("\u25d0")
-        opacity_label.setStyleSheet("color: #a0a0a0; font-size: 8px;")
+        opacity_label.setStyleSheet(f"color: {p.text_dim}; font-size: 8px; padding: 0px; margin: 0px;")
         opacity_label.setToolTip("Window opacity")
         layout.addWidget(opacity_label)
 
@@ -67,14 +67,14 @@ class TitleBar(QWidget):
         self._opacity_slider = QSlider(Qt.Orientation.Horizontal)
         self._opacity_slider.setRange(20, 100)
         self._opacity_slider.setValue(opacity_pct)
-        self._opacity_slider.setFixedWidth(80)
-        self._opacity_slider.setFixedHeight(18)
+        self._opacity_slider.setFixedWidth(40)
+        self._opacity_slider.setFixedHeight(12)
         self._opacity_slider.setToolTip(f"Opacity: {opacity_pct}%")
         self._opacity_slider.valueChanged.connect(self._on_opacity_changed)
         layout.addWidget(self._opacity_slider)
 
         tray_btn = QPushButton("\u25bc")
-        tray_btn.setFixedSize(32, 30)
+        tray_btn.setFixedSize(18, 18)
         tray_btn.setStyleSheet(btn_style)
         tray_btn.setToolTip("Minimize to tray")
         tray_btn.clicked.connect(self._main_window._minimize_to_tray)
@@ -198,6 +198,8 @@ class MainWindow(QMainWindow):
         self._system_stats_service = None
         self._input_detector = None
 
+        self._theme = get_theme(config_manager.settings.theme)
+
         self._resize_edge = _Edge.NONE
         self._resize_start_pos: QPoint | None = None
         self._resize_start_geo: QRect | None = None
@@ -215,7 +217,7 @@ class MainWindow(QMainWindow):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
         self.setMouseTracking(True)
-        self.setStyleSheet(DARK_THEME)
+        self.setStyleSheet(self._theme.dark_theme)
 
         settings = self._config_manager.settings
         self._apply_size(settings)
@@ -233,7 +235,7 @@ class MainWindow(QMainWindow):
             + settings.button_spacing + 16 + tree_width
         )
         height = (
-            55  # title bar
+            25  # title bar
             + settings.grid_rows * (settings.button_size + settings.button_spacing)
             + settings.button_spacing
             + 16  # margins
@@ -279,6 +281,15 @@ class MainWindow(QMainWindow):
         self._splitter.setSizes([180, 500])
 
         main_layout.addWidget(self._splitter, 1)
+
+        # Version label (bottom-right, barely visible)
+        p = self._theme.palette
+        self._version_label = QLabel(f"v{APP_VERSION}")
+        self._version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self._version_label.setStyleSheet(
+            f"color: {p.text_muted}; font-size: 7px; padding: 0px 4px 2px 0px; background: transparent;"
+        )
+        main_layout.addWidget(self._version_label)
 
         # Apply tree visibility from settings
         if not settings.folder_tree_visible:
@@ -333,11 +344,16 @@ class MainWindow(QMainWindow):
     def toggle_folder_tree(self) -> None:
         if self._folder_tree is None:
             return
+        old_width = self.width()
         visible = not self._folder_tree.isVisible()
         self._folder_tree.setVisible(visible)
         self._config_manager.settings.folder_tree_visible = visible
         self._config_manager.save()
         self._apply_size()
+        # Keep right edge fixed — shift x by the width difference
+        delta = self.width() - old_width
+        if delta != 0:
+            self.move(self.x() - delta, self.y())
 
     def set_input_detector(self, detector) -> None:
         self._input_detector = detector
@@ -387,6 +403,105 @@ class MainWindow(QMainWindow):
         self._config_manager.settings.window_y = pos.y()
         self._config_manager.save()
 
+    # --- Foreground helper for launching external apps ----------------
+
+    def launch_with_foreground(self, callback: object) -> None:
+        """Launch an external app ensuring its window appears in front.
+
+        *callback* should be a zero-arg callable that actually starts the
+        process (e.g. ``os.startfile(path)``).
+
+        Strategy:
+        1. Snapshot all visible window handles.
+        2. Temporarily remove WS_EX_NOACTIVATE, attach to the foreground
+           thread, call SetForegroundWindow — then execute *callback*.
+        3. Restore WS_EX_NOACTIVATE.
+        4. Schedule a fallback timer: after 800 ms, find any NEW visible
+           window and force it to the visual front via the SetWindowPos
+           TOPMOST/NOTOPMOST trick (immune to the foreground lock).
+        """
+        import ctypes
+        from ctypes import wintypes
+        from PyQt6.QtCore import QTimer
+
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        our_hwnd = int(self.winId())
+
+        # -- Step 1: snapshot existing visible windows --------------------
+        existing: set[int] = set()
+        WNDENUMPROC = ctypes.WINFUNCTYPE(
+            wintypes.BOOL, wintypes.HWND, wintypes.LPARAM,
+        )
+
+        @WNDENUMPROC
+        def _collect(hwnd, _):
+            if user32.IsWindowVisible(hwnd):
+                existing.add(int(hwnd))
+            return True
+
+        user32.EnumWindows(_collect, 0)
+
+        # -- Step 2: claim foreground & launch ----------------------------
+        GWL_EXSTYLE = -20
+        WS_EX_NOACTIVATE = 0x08000000
+
+        old_style = user32.GetWindowLongW(our_hwnd, GWL_EXSTYLE)
+        user32.SetWindowLongW(
+            our_hwnd, GWL_EXSTYLE, old_style & ~WS_EX_NOACTIVATE,
+        )
+
+        fg = user32.GetForegroundWindow()
+        fg_tid = user32.GetWindowThreadProcessId(fg, None)
+        our_tid = kernel32.GetCurrentThreadId()
+
+        attached = False
+        if fg_tid and fg_tid != our_tid:
+            attached = bool(user32.AttachThreadInput(our_tid, fg_tid, True))
+
+        user32.SetForegroundWindow(our_hwnd)
+
+        try:
+            callback()
+        finally:
+            # -- Step 3: restore ------------------------------------------
+            if attached:
+                user32.AttachThreadInput(our_tid, fg_tid, False)
+            user32.SetWindowLongW(our_hwnd, GWL_EXSTYLE, old_style)
+
+        # -- Step 4: fallback — bring new window to front after delay -----
+        def _bring_new_to_front():
+            found = 0
+
+            @WNDENUMPROC
+            def _find(hwnd, _):
+                nonlocal found
+                h = int(hwnd)
+                if (
+                    h != our_hwnd
+                    and user32.IsWindowVisible(hwnd)
+                    and h not in existing
+                ):
+                    found = h
+                    return False
+                return True
+
+            user32.EnumWindows(_find, 0)
+
+            if found:
+                SWP_NOMOVE_NOSIZE = 0x0001 | 0x0002  # SWP_NOSIZE|SWP_NOMOVE
+                HWND_TOPMOST = -1
+                HWND_NOTOPMOST = -2
+                user32.SetWindowPos(
+                    found, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE_NOSIZE,
+                )
+                user32.SetWindowPos(
+                    found, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE_NOSIZE,
+                )
+                user32.SetForegroundWindow(found)
+
+        QTimer.singleShot(800, _bring_new_to_front)
+
     def showEvent(self, event) -> None:
         super().showEvent(event)
         # Reinforce WS_EX_NOACTIVATE so clicks never steal focus
@@ -420,10 +535,48 @@ class MainWindow(QMainWindow):
         self._load_current_folder()
 
     def reload_config(self) -> None:
+        new_theme_name = self._config_manager.settings.theme
+        if new_theme_name != self._theme.palette.name:
+            self.apply_theme(new_theme_name)
         self._resize_for_settings()
         if self._folder_tree:
             self._folder_tree.rebuild()
         self._load_current_folder()
+
+    def apply_theme(self, theme_name: str) -> None:
+        """Switch to a new theme, updating all stylesheets."""
+        self._theme = get_theme(theme_name)
+
+        # Update QApplication global stylesheet
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app is not None:
+            app.setStyleSheet(self._theme.dark_theme)
+
+        # Update window-level stylesheet
+        self.setStyleSheet(self._theme.dark_theme)
+
+        # Rebuild title bar with new palette
+        self._title_bar._theme = self._theme
+        p = self._theme.palette
+        btn_style = (
+            f"QPushButton {{ background: transparent; color: {p.text_dim}; border: none; "
+            f"font-size: 8px; padding: 0px; margin: 0px; }}"
+            f"QPushButton:hover {{ background-color: {p.titlebar_btn_hover_bg}; color: {p.text_bright}; border-radius: 2px; }}"
+        )
+        self._title_bar.setStyleSheet(self._theme.title_bar_style)
+        for child in self._title_bar.findChildren(QPushButton):
+            child.setStyleSheet(btn_style)
+
+        # Update folder tree
+        if self._folder_tree is not None:
+            self._folder_tree.setStyleSheet(self._theme.folder_tree_style)
+
+        # Update version label
+        if hasattr(self, '_version_label'):
+            self._version_label.setStyleSheet(
+                f"color: {p.text_muted}; font-size: 7px; padding: 0px 4px 2px 0px; background: transparent;"
+            )
 
     def on_global_numpad(self, row: int, col: int) -> None:
         """Slot for global numpad key presses (Num Lock OFF, via InputDetector hook)."""

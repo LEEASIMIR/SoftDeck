@@ -4,12 +4,15 @@ import logging
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout,
     QSpinBox, QCheckBox, QComboBox,
     QDialogButtonBox, QGroupBox, QSlider,
-    QHBoxLayout, QLabel,
+    QHBoxLayout, QLabel, QFontComboBox,
 )
+
+from .styles import THEMES
 
 if TYPE_CHECKING:
     from ..config.manager import ConfigManager
@@ -46,6 +49,9 @@ class SettingsDialog(QDialog):
         self._spacing_spin.setSuffix(" px")
         grid_form.addRow("Button Spacing:", self._spacing_spin)
 
+        self._default_label_family_combo = QFontComboBox()
+        grid_form.addRow("Default Font:", self._default_label_family_combo)
+
         self._default_label_size_spin = QSpinBox()
         self._default_label_size_spin.setRange(8, 48)
         self._default_label_size_spin.setSuffix(" px")
@@ -70,7 +76,8 @@ class SettingsDialog(QDialog):
         appearance_form = QFormLayout(appearance_group)
 
         self._theme_combo = QComboBox()
-        self._theme_combo.addItem("Dark", "dark")
+        for name, palette in THEMES.items():
+            self._theme_combo.addItem(palette.display_name, name)
         appearance_form.addRow("Theme:", self._theme_combo)
 
         opacity_row = QHBoxLayout()
@@ -100,6 +107,8 @@ class SettingsDialog(QDialog):
         self._size_spin.setValue(s.button_size)
         self._spacing_spin.setValue(s.button_spacing)
         self._default_label_size_spin.setValue(s.default_label_size)
+        if s.default_label_family:
+            self._default_label_family_combo.setCurrentFont(QFont(s.default_label_family))
         self._auto_switch_check.setChecked(s.auto_switch_enabled)
         self._always_on_top_check.setChecked(s.always_on_top)
 
@@ -117,6 +126,7 @@ class SettingsDialog(QDialog):
         s.button_size = self._size_spin.value()
         s.button_spacing = self._spacing_spin.value()
         s.default_label_size = self._default_label_size_spin.value()
+        s.default_label_family = self._default_label_family_combo.currentFont().family()
         s.auto_switch_enabled = self._auto_switch_check.isChecked()
         s.always_on_top = self._always_on_top_check.isChecked()
         s.theme = self._theme_combo.currentData()

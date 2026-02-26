@@ -22,7 +22,6 @@ class LaunchAppAction(ActionBase):
 
         try:
             if not args:
-                # os.startfile handles GUI apps, console apps, documents, URLs correctly
                 os.startfile(path)
                 logger.info("Launched via startfile: %s", path)
             else:

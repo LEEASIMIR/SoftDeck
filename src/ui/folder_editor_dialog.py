@@ -38,7 +38,7 @@ class FolderEditorDialog(QDialog):
         basic_form.addRow("Name:", self._name_edit)
 
         self._id_label = QLabel()
-        self._id_label.setStyleSheet("color: #808080; font-size: 11px;")
+        self._id_label.setStyleSheet("font-size: 11px;")
         basic_form.addRow("ID:", self._id_label)
 
         layout.addWidget(basic_group)

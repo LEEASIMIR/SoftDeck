@@ -7,6 +7,8 @@ import shutil
 import uuid
 from pathlib import Path
 
+from src.version import APP_VERSION
+
 from .models import AppConfig, FolderConfig
 
 logger = logging.getLogger(__name__)
@@ -38,11 +40,17 @@ class ConfigManager:
             try:
                 data = json.loads(self._path.read_text(encoding="utf-8"))
                 old_version = data.get("version", 1)
+                old_app_version = data.get("app_version", "")
                 self._config = AppConfig.from_dict(data)
                 logger.info("Loaded user config from %s", self._path)
-                # Re-save if migrated from v1
+                needs_save = False
                 if old_version < 2:
                     logger.info("Migrated config from v%d to v2", old_version)
+                    needs_save = True
+                if old_app_version != APP_VERSION:
+                    logger.info("App version updated: %s -> %s", old_app_version or "(none)", APP_VERSION)
+                    needs_save = True
+                if needs_save:
                     self.save()
                 return self._config
             except Exception:
