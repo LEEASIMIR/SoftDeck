@@ -5,7 +5,7 @@ from typing import Any
 
 import keyboard
 
-from .base import ActionBase
+from ...actions.base import ActionBase
 
 logger = logging.getLogger(__name__)
 

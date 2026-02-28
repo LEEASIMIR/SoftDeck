@@ -195,7 +195,6 @@ ACTION_TYPES = [
     ("launch_app", "Launch App"),
     ("hotkey", "Hotkey"),
     ("text_input", "Text Input"),
-    ("media_control", "Media Control"),
     ("system_monitor", "System Monitor"),
     ("navigate_folder", "Navigate Folder"),
     ("open_url", "Open URL"),
@@ -207,16 +206,6 @@ MACRO_STEP_TYPES = [
     ("hotkey", "Hotkey"),
     ("text_input", "Text Input"),
     ("delay", "Delay"),
-]
-
-MEDIA_COMMANDS = [
-    ("play_pause", "Play / Pause"),
-    ("next_track", "Next Track"),
-    ("prev_track", "Previous Track"),
-    ("stop", "Stop"),
-    ("volume_up", "Volume Up"),
-    ("volume_down", "Volume Down"),
-    ("mute", "Mute / Unmute"),
 ]
 
 
@@ -234,6 +223,9 @@ class ButtonEditorDialog(QDialog):
         self._col = col
         self._config_manager = config_manager
         self._config = config or ButtonConfig(position=(row, col))
+        self._plugin_loader = getattr(parent, '_plugin_loader', None)
+        self._plugin_editors: dict[str, object] = {}
+        self._type_to_page: dict[str, int] = {}
 
         self.setWindowTitle(f"Edit Button [{row}, {col}]")
         self.setMinimumWidth(400)
@@ -350,15 +342,6 @@ class ButtonEditorDialog(QDialog):
         text_input_form.addRow(self._text_clipboard_check)
         self._params_stack.addWidget(text_input_page)
 
-        # Media control page
-        media_page = QWidget()
-        media_form = QFormLayout(media_page)
-        self._media_combo = QComboBox()
-        for value, label in MEDIA_COMMANDS:
-            self._media_combo.addItem(label, value)
-        media_form.addRow("Command:", self._media_combo)
-        self._params_stack.addWidget(media_page)
-
         # System monitor page
         monitor_page = QWidget()
         monitor_form = QFormLayout(monitor_page)
@@ -469,6 +452,33 @@ class ButtonEditorDialog(QDialog):
         run_cmd_form.addRow(self._cmd_show_window_check)
         self._params_stack.addWidget(run_cmd_page)
 
+        # Build type→page index map for built-in types
+        self._type_to_page = {
+            "": 0,
+            "launch_app": 1,
+            "hotkey": 2,
+            "text_input": 3,
+            "system_monitor": 4,
+            "navigate_folder": 5,
+            "open_url": 6,
+            "macro": 7,
+            "run_command": 8,
+        }
+
+        # Plugin action types (dynamic pages)
+        if self._plugin_loader:
+            for action_type, display_name in self._plugin_loader.get_action_types():
+                self._type_combo.addItem(display_name, action_type)
+                editor = self._plugin_loader.get_editor(action_type)
+                if editor:
+                    widget = editor.create_widget(self)
+                    idx = self._params_stack.addWidget(widget)
+                    self._plugin_editors[action_type] = editor
+                    self._type_to_page[action_type] = idx
+                else:
+                    idx = self._params_stack.addWidget(QWidget())
+                    self._type_to_page[action_type] = idx
+
         action_layout.addWidget(self._params_stack)
         layout.addWidget(action_group)
 
@@ -519,12 +529,6 @@ class ButtonEditorDialog(QDialog):
         elif orig_type == "text_input":
             self._text_input_edit.setPlainText(params.get("text", ""))
             self._text_clipboard_check.setChecked(params.get("use_clipboard", False))
-        elif orig_type == "media_control":
-            cmd = params.get("command", "")
-            for i in range(self._media_combo.count()):
-                if self._media_combo.itemData(i) == cmd:
-                    self._media_combo.setCurrentIndex(i)
-                    break
         elif orig_type == "open_url":
             self._url_edit.setText(params.get("url", ""))
         elif orig_type in ("navigate_page", "navigate_folder"):
@@ -540,22 +544,12 @@ class ButtonEditorDialog(QDialog):
             self._cmd_edit.setText(params.get("command", ""))
             self._cmd_workdir_edit.setText(params.get("working_dir", ""))
             self._cmd_show_window_check.setChecked(params.get("show_window", True))
+        elif orig_type in self._plugin_editors:
+            self._plugin_editors[orig_type].load_params(params)
 
     def _on_type_changed(self, index: int) -> None:
         action_type = self._type_combo.itemData(index)
-        type_to_page = {
-            "": 0,
-            "launch_app": 1,
-            "hotkey": 2,
-            "text_input": 3,
-            "media_control": 4,
-            "system_monitor": 5,
-            "navigate_folder": 6,
-            "open_url": 7,
-            "macro": 8,
-            "run_command": 9,
-        }
-        self._params_stack.setCurrentIndex(type_to_page.get(action_type, 0))
+        self._params_stack.setCurrentIndex(self._type_to_page.get(action_type, 0))
 
     def _browse_icon(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -611,8 +605,6 @@ class ButtonEditorDialog(QDialog):
         elif action_type == "text_input":
             params["text"] = self._text_input_edit.toPlainText()
             params["use_clipboard"] = self._text_clipboard_check.isChecked()
-        elif action_type == "media_control":
-            params["command"] = self._media_combo.currentData()
         elif action_type == "system_monitor":
             params["display"] = "cpu_ram"
         elif action_type == "open_url":
@@ -626,6 +618,8 @@ class ButtonEditorDialog(QDialog):
             if self._cmd_workdir_edit.text():
                 params["working_dir"] = self._cmd_workdir_edit.text()
             params["show_window"] = self._cmd_show_window_check.isChecked()
+        elif action_type in self._plugin_editors:
+            params = self._plugin_editors[action_type].get_params()
 
         return ButtonConfig(
             position=(self._row, self._col),

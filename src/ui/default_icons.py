@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any
+from typing import Any, Callable
 
 # action type → icon filename (without extension)
-# media_control uses per-command sub-icons, so excluded here
 ACTION_ICON_MAP: dict[str, str] = {
     "launch_app": "launch_app",
     "hotkey": "hotkey",
@@ -17,16 +16,13 @@ ACTION_ICON_MAP: dict[str, str] = {
     "run_command": "run_command",
 }
 
-# media_control command → sub-icon filename
-MEDIA_ICON_MAP: dict[str, str] = {
-    "play_pause": "play_pause",
-    "next_track": "next_track",
-    "prev_track": "prev_track",
-    "stop": "stop",
-    "volume_up": "volume_up",
-    "volume_down": "volume_down",
-    "mute": "mute",
-}
+_plugin_icon_resolver: Callable[[str, dict[str, Any]], str] | None = None
+
+
+def set_plugin_icon_resolver(resolver: Callable[[str, dict[str, Any]], str]) -> None:
+    """Set the callback used to resolve icons for plugin action types."""
+    global _plugin_icon_resolver
+    _plugin_icon_resolver = resolver
 
 
 def _icons_dir() -> str:
@@ -51,14 +47,11 @@ def get_default_icon_path(action_type: str, params: dict[str, Any] | None = None
     """Return the icon file path for an action type, or empty string if not found."""
     icons = _icons_dir()
 
-    if action_type == "media_control" and params:
-        command = params.get("command", "")
-        filename = MEDIA_ICON_MAP.get(command, "")
-        if filename:
-            return _find_icon(os.path.join(icons, "media_control"), filename)
-        return ""
-
     filename = ACTION_ICON_MAP.get(action_type, "")
-    if not filename:
-        return ""
-    return _find_icon(icons, filename)
+    if filename:
+        return _find_icon(icons, filename)
+
+    if _plugin_icon_resolver:
+        return _plugin_icon_resolver(action_type, params or {})
+
+    return ""

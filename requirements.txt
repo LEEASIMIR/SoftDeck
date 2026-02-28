@@ -4,3 +4,5 @@ psutil>=5.9.0
 pycaw>=20230407
 keyboard>=0.13.5
 comtypes>=1.2.0
+winrt-Windows.Media.Control>=3.2.0
+winrt-Windows.Foundation>=3.2.0

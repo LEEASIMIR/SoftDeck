@@ -40,6 +40,8 @@ class DeckButton(QPushButton):
         self._icon_pixmap: QPixmap | None = None
         self._scaled_icon: QPixmap | None = None
         self._scaled_icon_size: int = 0
+        self._media_is_playing: bool = False
+        self._media_is_muted: bool = False
 
         self._drag_start_pos: QPoint | None = None
 
@@ -104,6 +106,21 @@ class DeckButton(QPushButton):
             style += "\nQPushButton#deckButton { " + " ".join(overrides) + " }"
         self.setStyleSheet(style)
 
+    # Per-state param keys for media toggle commands
+    # Maps command → ((active_icon_key, active_label_key), (inactive_icon_key, inactive_label_key))
+    _MEDIA_TOGGLE_KEYS = {
+        "play_pause": (("pause_icon", "pause_label"), ("play_icon", "play_label")),
+        "mute": (("unmute_icon", "unmute_label"), ("mute_icon", "mute_label")),
+    }
+
+    def _get_media_toggle_state(self, command: str) -> bool:
+        """Return True if in active state for the given toggle command."""
+        if command == "play_pause":
+            return self._media_is_playing
+        if command == "mute":
+            return self._media_is_muted
+        return False
+
     def _update_display(self) -> None:
         if self._config is None:
             self.setText("")
@@ -114,14 +131,27 @@ class DeckButton(QPushButton):
             self.setText(self._monitor_text)
             return
 
+        params = self._config.action.params
+        command = params.get("command", "") if self._config.action.type == "media_control" else ""
+        toggle_keys = self._MEDIA_TOGGLE_KEYS.get(command)
+
         # Load icon pixmap for custom painting (drawn behind text)
-        # Priority: custom icon > default action icon
+        # Priority: per-state icon > custom icon > default action icon
         icon_path = ""
-        if self._config.icon and os.path.isfile(self._config.icon):
+        has_state_label = False
+        if toggle_keys:
+            active = self._get_media_toggle_state(command)
+            ico_key, lbl_key = toggle_keys[0] if active else toggle_keys[1]
+            has_state_label = bool(params.get(lbl_key, ""))
+            state_icon = params.get(ico_key, "")
+            if state_icon and os.path.isfile(state_icon):
+                icon_path = state_icon
+        if not icon_path and self._config.icon and os.path.isfile(self._config.icon):
             icon_path = self._config.icon
-        elif self._config.action.type:
+        # Skip default icon if per-state label is set (text-only display)
+        if not icon_path and self._config.action.type and not has_state_label:
             from .default_icons import get_default_icon_path
-            icon_path = get_default_icon_path(self._config.action.type, self._config.action.params)
+            icon_path = get_default_icon_path(self._config.action.type, params)
 
         if icon_path:
             self._icon_pixmap = QPixmap(icon_path)
@@ -129,6 +159,15 @@ class DeckButton(QPushButton):
             self._icon_pixmap = None
         self._scaled_icon = None
         self._scaled_icon_size = 0
+
+        # Per-state label takes priority
+        if toggle_keys:
+            active = self._get_media_toggle_state(command)
+            _, lbl_key = toggle_keys[0] if active else toggle_keys[1]
+            state_label = params.get(lbl_key, "")
+            if state_label:
+                self.setText(state_label)
+                return
 
         # If icon exists and label is empty, show icon only (no text)
         if self._icon_pixmap and not self._config.label:
@@ -300,6 +339,66 @@ class DeckButton(QPushButton):
         if self._config and self._config.action.type == "system_monitor":
             self._monitor_text = f"CPU {cpu:.0f}%\nRAM {ram:.0f}%"
             self.setText(self._monitor_text)
+
+    def _update_media_toggle(self, command: str) -> None:
+        """Shared update for media toggle buttons (play_pause, mute)."""
+        if not self._config or self._config.action.type != "media_control":
+            return
+        if self._config.action.params.get("command") != command:
+            return
+
+        params = self._config.action.params
+        toggle_keys = self._MEDIA_TOGGLE_KEYS.get(command)
+        if not toggle_keys:
+            return
+
+        active = self._get_media_toggle_state(command)
+        ico_key, lbl_key = toggle_keys[0] if active else toggle_keys[1]
+
+        # Resolve icon: per-state custom > button custom > default plugin icon
+        icon_path = ""
+        state_label = params.get(lbl_key, "")
+        state_icon = params.get(ico_key, "")
+        if state_icon and os.path.isfile(state_icon):
+            icon_path = state_icon
+        elif self._config.icon and os.path.isfile(self._config.icon):
+            icon_path = self._config.icon
+        elif not state_label:
+            from .default_icons import get_default_icon_path
+            icon_path = get_default_icon_path(self._config.action.type, params)
+
+        if icon_path:
+            self._icon_pixmap = QPixmap(icon_path)
+        else:
+            self._icon_pixmap = None
+
+        # Resolve label: per-state label > button label > icon-only > text fallback
+        if state_label:
+            self.setText(state_label)
+        elif self._config.label:
+            self.setText(self._config.label)
+        elif self._icon_pixmap:
+            self.setText("")
+        else:
+            # Unicode fallback when no icon available
+            if command == "play_pause":
+                self.setText("\u23f8" if active else "\u25b6")
+            elif command == "mute":
+                self.setText("\U0001f507" if active else "\U0001f50a")
+
+        self._scaled_icon = None
+        self._scaled_icon_size = 0
+        self.update()
+
+    def update_media_state(self, is_playing: bool) -> None:
+        """Update icon/label for play_pause buttons based on playback state."""
+        self._media_is_playing = is_playing
+        self._update_media_toggle("play_pause")
+
+    def update_mute_state(self, is_muted: bool) -> None:
+        """Update icon/label for mute buttons based on mute state."""
+        self._media_is_muted = is_muted
+        self._update_media_toggle("mute")
 
     def _show_context_menu(self, pos) -> None:
         menu = QMenu(self)

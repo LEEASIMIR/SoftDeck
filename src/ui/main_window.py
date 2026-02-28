@@ -200,16 +200,20 @@ class MainWindow(QMainWindow):
         self,
         config_manager: ConfigManager,
         action_registry: ActionRegistry,
+        plugin_loader=None,
     ) -> None:
         super().__init__()
         self._config_manager = config_manager
         self._action_registry = action_registry
+        self._plugin_loader = plugin_loader
         self._current_folder_id: str = "root"
         self._buttons: dict[tuple[int, int], object] = {}
         self._folder_tree = None
         self._window_monitor = None
         self._system_stats_service = None
         self._input_detector = None
+        self._last_media_playing: bool = False
+        self._last_media_muted: bool = False
 
         self._theme = get_theme(config_manager.settings.theme)
 
@@ -361,6 +365,14 @@ class MainWindow(QMainWindow):
                     self._grid_layout.addWidget(deck_btn, row, col)
                     self._buttons[(row, col)] = deck_btn
 
+        # Re-apply cached media states to newly loaded buttons
+        if self._last_media_playing:
+            for btn in self._buttons.values():
+                btn.update_media_state(self._last_media_playing)
+        if self._last_media_muted:
+            for btn in self._buttons.values():
+                btn.update_mute_state(self._last_media_muted)
+
     def switch_to_folder_id(self, folder_id: str) -> None:
         folder = self._config_manager.get_folder_by_id(folder_id)
         if folder is not None:
@@ -401,9 +413,22 @@ class MainWindow(QMainWindow):
     def set_system_stats_service(self, service) -> None:
         self._system_stats_service = service
 
+    def set_toast_manager(self, manager) -> None:
+        self._toast_manager = manager
+
     def update_monitor_button(self, cpu: float, ram: float) -> None:
         for btn in self._buttons.values():
             btn.update_monitor_data(cpu, ram)
+
+    def update_media_state(self, is_playing: bool) -> None:
+        self._last_media_playing = is_playing
+        for btn in self._buttons.values():
+            btn.update_media_state(is_playing)
+
+    def update_mute_state(self, is_muted: bool) -> None:
+        self._last_media_muted = is_muted
+        for btn in self._buttons.values():
+            btn.update_mute_state(is_muted)
 
     def show_on_primary(self) -> None:
         settings = self._config_manager.settings
@@ -579,6 +604,10 @@ class MainWindow(QMainWindow):
     def apply_theme(self, theme_name: str) -> None:
         """Switch to a new theme, updating all stylesheets."""
         self._theme = get_theme(theme_name)
+
+        # Sync toast manager palette
+        if hasattr(self, '_toast_manager') and self._toast_manager is not None:
+            self._toast_manager.set_palette(self._theme.palette)
 
         # Update QApplication global stylesheet
         from PyQt6.QtWidgets import QApplication
