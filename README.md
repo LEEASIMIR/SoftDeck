@@ -16,8 +16,8 @@ SoftDeck는 화면에 격자형 버튼 패널을 띄워놓고 다양한 동작�
 
 | 모드 | 설명 |
 |------|------|
-| **Shortcut Mode** (기본) | 넘패드 키로 버튼 조작. Num Lock OFF = 창 표시, ON = 창 숨김 |
-| **Widget Mode** | 항상 표시되는 마우스 전용 위젯. 넘패드 없는 환경에 적합 |
+| **Widget Mode** (기본) | 항상 표시되는 마우스 전용 위젯. 바로 사용 가능 |
+| **Shortcut Mode** | 넘패드 키로 버튼 조작. Num Lock OFF = 창 표시, ON = 창 숨김 |
 
 Settings에서 재시작 없이 즉시 전환 가능합니다.
 
@@ -111,7 +111,7 @@ Play/Pause, Next, Previous, Stop, Volume Up/Down, Mute, Mic Mute, Now Playing (�
 | Button Spacing | 버튼 간격 | 8px |
 | Default Font | 기본 라벨 폰트 | 시스템 기본 |
 | Default Font Size | 기본 라벨 크기 | 10px |
-| Input Mode | Shortcut / Widget | Shortcut |
+| Input Mode | Widget / Shortcut | Widget |
 | Auto-switch | 활성 앱 기반 폴더 전환 | ON |
 | Always on top | 항상 위에 표시 | ON |
 | Theme | 테마 (10종) | Dark |

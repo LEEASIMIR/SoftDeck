@@ -6,8 +6,8 @@ SoftDeck는 Windows용 커스텀 버튼 덱 앱입니다. Stream Deck처럼 격�
 
 두 가지 입력 모드를 지원합니다:
 
-- **Shortcut Mode** (기본) — Num Lock OFF 시 창 표시 + 넘패드로 버튼 조작, Num Lock ON 시 창 숨김 + 넘패드 일반 사용
-- **Widget Mode** — 항상 표시되는 마우스 전용 위젯 (넘패드/NumLock 연동 없음)
+- **Widget Mode** (기본) — 항상 표시되는 마우스 전용 위젯. 바로 사용 가능
+- **Shortcut Mode** — Num Lock OFF 시 창 표시 + 넘패드로 버튼 조작, Num Lock ON 시 창 숨김 + 넘패드 일반 사용
 
 ---
 
@@ -34,21 +34,21 @@ python main.py
 
 Settings에서 언제든 전환할 수 있으며, 재시작 없이 즉시 적용됩니다.
 
-### Shortcut Mode (기본)
+### Widget Mode (기본)
+
+마우스 전용 위젯 모드입니다. 처음 사용하는 분에게 권장합니다.
+
+- 창이 항상 표시됩니다
+- 마우스로 버튼을 클릭하여 사용
+- 넘패드 키 캡처 없음 (키보드 훅 비활성)
+
+### Shortcut Mode
 
 넘패드 키로 버튼을 조작하는 모드입니다.
 
 - Num Lock OFF → 창 표시, 넘패드 키가 버튼에 매핑
 - Num Lock ON → 창 숨김, 넘패드 키는 일반 숫자 입력
 - 전용 키보드 훅(DLL)이 넘패드 키를 가로채서 다른 앱에 전달되지 않도록 합니다
-
-### Widget Mode
-
-마우스 전용 위젯 모드입니다.
-
-- 창이 항상 표시됩니다
-- 넘패드 키 캡처 없음 (키보드 훅 비활성)
-- 넘패드가 없는 환경에서 사용하기 좋습니다
 
 ---
 
@@ -295,7 +295,7 @@ Record 버튼을 누르면 키보드와 마우스 입력을 자동 녹화합니�
 
 | 항목 | 설명 | 기본값 |
 |------|------|--------|
-| **Input Mode** | Shortcut Mode / Widget Mode 전환 | Shortcut Mode |
+| **Input Mode** | Widget Mode / Shortcut Mode 전환 | Widget Mode |
 | **Auto-switch** | 활성 앱 기반 폴더 자동 전환 | ON |
 | **Always on top** | 항상 위에 표시 | ON |
 

@@ -281,14 +281,14 @@ def build_pdf(output_path: str):
         ["모드", "설명", "적합한 사용자"],
         [
             [
+                "Widget Mode (기본)",
+                "항상 화면에 표시. 마우스로 클릭하여 사용",
+                "처음 사용자, 넘패드 없는 환경",
+            ],
+            [
                 "Shortcut Mode",
                 "넘패드 키로 버튼 조작. Num Lock으로 창 표시/숨김 전환",
                 "넘패드 키보드 사용자",
-            ],
-            [
-                "Widget Mode",
-                "항상 화면에 표시. 마우스로만 클릭하여 사용",
-                "넘패드 없는 환경, 터치스크린",
             ],
         ],
         col_widths=[35 * mm, 70 * mm, 55 * mm],
@@ -773,7 +773,7 @@ def build_pdf(output_path: str):
     story.append(tbl(
         ["설정", "설명", "기본값"],
         [
-            ["Input Mode", "Shortcut Mode (넘패드) / Widget Mode (마우스 전용)", "Shortcut"],
+            ["Input Mode", "Widget Mode (마우스 전용) / Shortcut Mode (넘패드)", "Widget"],
             ["Auto-switch", "활성 앱에 따라 폴더 자동 전환", "ON"],
             ["Always on top", "다른 창 위에 항상 표시", "ON"],
         ],
@@ -867,9 +867,9 @@ def build_pdf(output_path: str):
 
     faq = [
         (
-            "넘패드가 없는 키보드에서도 사용할 수 있나요?",
-            "네, Settings에서 Input Mode를 Widget Mode로 변경하세요. "
-            "마우스로 버튼을 직접 클릭하여 사용할 수 있습니다.",
+            "넘패드로도 조작할 수 있나요?",
+            "네, Settings에서 Input Mode를 Shortcut Mode로 변경하세요. "
+            "넘패드 키가 버튼에 매핑되어 키보드만으로 조작할 수 있습니다.",
         ),
         (
             "버튼이 12개로 부족합니다.",

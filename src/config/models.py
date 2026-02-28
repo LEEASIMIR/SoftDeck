@@ -114,7 +114,7 @@ class AppSettings:
     button_size: int = 60
     button_spacing: int = 8
     default_label_size: int = 10
-    input_mode: str = "shortcut"  # "shortcut" or "widget"
+    input_mode: str = "widget"  # "shortcut" or "widget"
     auto_switch_enabled: bool = True
     always_on_top: bool = True
     theme: str = "dark"
@@ -151,7 +151,7 @@ class AppSettings:
             button_spacing=data.get("button_spacing", 8),
             default_label_size=data.get("default_label_size", 10),
             default_label_family=data.get("default_label_family", ""),
-            input_mode=data.get("input_mode", "shortcut") if data.get("input_mode") in ("shortcut", "widget") else "shortcut",
+            input_mode=data.get("input_mode", "widget") if data.get("input_mode") in ("shortcut", "widget") else "widget",
             auto_switch_enabled=data.get("auto_switch_enabled", True),
             always_on_top=data.get("always_on_top", True),
             theme=data.get("theme", "dark"),
