@@ -166,6 +166,7 @@ assets/icons/actions/            # Default action icons: {type}.png|.svg per act
 config/default_config.json       # Default grid (4 rows): Root(media+monitor) → Apps(system utils) → Shortcuts(hotkeys) — all folders have Back button at (3,0) (v2 format)
 config/examples/media.json       # Example folder: Media (emoji media controls, mute/play toggle labels, audio device switch, now playing, mic mute)
 config/examples/folders.json     # Example folder: 폴더 (open_folder for Pictures/Documents/Downloads/Desktop via %USERPROFILE%)
+config/examples/virtual_desktop.json # Example folder: 가상 데스크톱 (Windows virtual desktop hotkeys: switch/create/close/task view)
 USAGE.md                         # User manual — reference (Korean)
 GUIDE.md                         # User manual — beginner-friendly guide (Korean)
 docs/build_pdf.py                # Script to regenerate the PDF guide

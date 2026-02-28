@@ -1,0 +1,73 @@
+{
+  "version": "0.1.1",
+  "name_suffix": "가상 데스크톱",
+  "folder": {
+    "id": "example_virtual_desktop",
+    "name": "0.1.1_가상 데스크톱",
+    "mapped_apps": [],
+    "buttons": [
+      {
+        "position": [0, 0],
+        "label": "◀ 이전",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "win+ctrl+left"
+          }
+        },
+        "label_size": 12
+      },
+      {
+        "position": [0, 1],
+        "label": "작업 보기",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "win+tab"
+          }
+        },
+        "label_size": 12
+      },
+      {
+        "position": [0, 2],
+        "label": "다음 ▶",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "win+ctrl+right"
+          }
+        },
+        "label_size": 12
+      },
+      {
+        "position": [1, 0],
+        "label": "＋ 새 데스크톱",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "win+ctrl+d"
+          }
+        },
+        "label_size": 12
+      },
+      {
+        "position": [1, 2],
+        "label": "✕ 닫기",
+        "icon": "",
+        "action": {
+          "type": "hotkey",
+          "params": {
+            "keys": "win+ctrl+f4"
+          }
+        },
+        "label_size": 12
+      }
+    ],
+    "children": [],
+    "expanded": true
+  }
+}
