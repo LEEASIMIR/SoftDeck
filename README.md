@@ -36,13 +36,6 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### 빌드 (exe)
-
-```bash
-build.bat
-# → dist/SoftDeck.exe
-```
-
 ## 넘패드 매핑 (Shortcut Mode)
 
 물리적 넘패드 배치 그대로 버튼에 대응됩니다.

@@ -31,14 +31,6 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### 빌드 (exe)
-
-```bash
-build.bat
-```
-
-빌드 완료 시 `dist/SoftDeck.exe` 생성
-
 ---
 
 ## 입력 모드
